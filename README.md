@@ -32,8 +32,78 @@ B. Rendering Pipeline
 
 1. Development Roadmap
 
-    Phase 1 (MVP): Basic p5.js sketch with file uploader, 256x256 grid, and "pitch" slider. (Current Stage)
+    Phase 1 (MVP): Basic LED grid, file upload, pitch control. ✅
+    Phase 2 (UX): Presets, timeline scrubber, aspect ratios. ✅  
+    Phase 3 (Polishing): Bloom shader, fullscreen, anti-aliasing. ✅
 
-    Phase 2 (UX): Add "Wall Preset" buttons (e.g., "P3 128x128", "P6 256x256") and a scrubbable timeline.
+## Local Development
 
-    Phase 3 (Polishing): Implement the Bloom Shader for realistic night-room lighting and a "Fullscreen" preview mode.
+### Using Deno (Recommended)
+
+```bash
+deno run --allow-net --allow-read server.ts
+```
+
+Open: http://localhost:8000
+
+### Using Python 3
+
+```bash
+python -m http.server 8000
+```
+
+Open: http://localhost:8000
+
+## Project Structure
+
+```
+led-sign-visualizer/
+├── index.html              # Main HTML
+├── server.ts               # Deno dev server (CORS enabled)
+├── js/
+│   ├── main.js            # App entry point
+│   ├── shaders.js         # GLSL shader code
+│   ├── ui.js              # UI element management
+│   ├── renderEngine.js    # LED rendering engine
+│   └── canvas.js          # Canvas utilities
+└── README.md              # This file
+```
+
+## Deployment to GitHub Pages
+
+1. Push to your GitHub repository
+2. Settings → Pages
+3. Select `main` branch, root folder
+4. Site will be live at: `https://yourusername.github.io/led-sign-visualizer`
+
+## Features
+
+- Local video playback (.mp4, .mov, .webm)
+- LED grid: 32×32 to 256×256
+- Configurable aspect ratios
+- Preset buttons (P3, P6, Tall, Wide)
+- LED pitch control (0.02–0.9)
+- Bloom/glow effect
+- Timeline scrubber & fullscreen
+- Anti-aliasing (reduces Moiré)
+- Square LED shapes
+
+## Development
+
+To add features, extend the relevant class and wire up in `main.js`:
+
+- **UI controls** → `UIManager` in `ui.js`
+- **Rendering effects** → Fragment shader in `shaders.js`
+- **Rendering logic** → `RenderEngine` in `renderEngine.js`
+
+## Browser Support
+
+- Chrome/Edge 90+
+- Firefox 88+
+- Safari 15+
+
+(Requires WebGL 2.0)
+
+## License
+
+MIT - Use freely for personal or commercial projects
