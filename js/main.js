@@ -25,11 +25,18 @@ function setup() {
   ui = new UIManager();
 
   // Setup all event handlers
-  ui.setupVideoHandlers(handleFileSelect, handleTogglePlay);
-  ui.setupPresets(handlePreset);
+  ui.setupVideoHandlers(
+    handleFileSelect,
+    handleTogglePlay,
+    handleVideoPresetSelect,
+  );
+  ui.renderPresets(handlePreset);
   ui.setupGridListeners(handleGridChange);
   ui.setupTimelineListener(handleTimelineChange);
   ui.setupFullscreenListener(handleFullscreen);
+
+  // Initialize canvas manager for fullscreen handling
+  CanvasManager.initialize();
 
   // Initial canvas size
   const dims = ui.getGridDimensions();
@@ -50,9 +57,30 @@ function handleTogglePlay() {
   engine.togglePlayPause();
 }
 
+function handleVideoPresetSelect(event) {
+  const videoPath = event.target.value;
+  if (videoPath) {
+    console.log("Loading preset video:", videoPath);
+    // Load video from the specified path
+    fetch(videoPath)
+      .then((response) => response.blob())
+      .then((blob) => {
+        // Create a File object from the blob
+        const file = new File([blob], videoPath.split("/").pop(), {
+          type: blob.type,
+        });
+        engine.loadVideo(file, () => {
+          console.log("Preset video loaded successfully");
+        });
+      })
+      .catch((error) => console.error("Error loading preset video:", error));
+  }
+}
+
 function handlePreset(preset) {
   ui.setGridDimensions(preset.cols, preset.rows);
   ui.setPitch(preset.pitch);
+  ui.setBloom(preset.bloom);
   handleGridChange();
 }
 

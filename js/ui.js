@@ -2,6 +2,14 @@
  * UI element management and preset handling
  */
 
+// Define all presets with their configuration (cols, rows, pitch, bloom)
+const PRESETS = [
+  { name: "P3 128x128", cols: 128, rows: 128, pitch: 0.18, bloom: 0.5 },
+  { name: "P6 256x256", cols: 256, rows: 256, pitch: 0.18, bloom: 0.5 },
+  { name: "Tall 128x256", cols: 128, rows: 256, pitch: 0.18, bloom: 0.5 },
+  { name: "Wide 256x128", cols: 256, rows: 128, pitch: 0.18, bloom: 0.5 },
+];
+
 export class UIManager {
   constructor() {
     this.pitchSlider = select("#pitchSlider");
@@ -11,25 +19,32 @@ export class UIManager {
     this.timeDisplay = select("#timeDisplay");
     this.fullscreenBtn = select("#fullscreenBtn");
     this.bloomSlider = select("#bloomSlider");
+    this.videoPresetSelect = select("#videoPresetSelect");
+    this.presetsContainer = select("#presetsContainer");
+    this.presets = PRESETS;
   }
 
-  setupVideoHandlers(onFileSelect, onTogglePlay) {
+  setupVideoHandlers(onFileSelect, onTogglePlay, onVideoPresetSelect) {
     select("#videoInput").elt.onchange = onFileSelect;
     select("#playBtn").mousePressed(onTogglePlay);
+    if (this.videoPresetSelect) {
+      this.videoPresetSelect.elt.onchange = onVideoPresetSelect;
+    }
   }
 
-  setupPresets(onPreset) {
-    select("#presetP3").mousePressed(() => {
-      onPreset({ cols: 128, rows: 128, pitch: 0.18 });
-    });
-    select("#presetP6").mousePressed(() => {
-      onPreset({ cols: 256, rows: 256, pitch: 0.18 });
-    });
-    select("#presetTall").mousePressed(() => {
-      onPreset({ cols: 128, rows: 256, pitch: 0.18 });
-    });
-    select("#presetWide").mousePressed(() => {
-      onPreset({ cols: 256, rows: 128, pitch: 0.18 });
+  renderPresets(onPreset) {
+    // Clear existing preset buttons
+    this.presetsContainer.elt.innerHTML = "";
+
+    // Create buttons for each preset
+    this.presets.forEach((preset) => {
+      const btn = document.createElement("button");
+      btn.className = "preset-btn";
+      btn.textContent = preset.name;
+      btn.addEventListener("click", () => {
+        onPreset(preset);
+      });
+      this.presetsContainer.elt.appendChild(btn);
     });
   }
 
@@ -70,6 +85,10 @@ export class UIManager {
     return parseFloat(this.bloomSlider.elt.value || 0.5);
   }
 
+  setBloom(value) {
+    this.bloomSlider.elt.value = value;
+  }
+
   setTimelineMax(duration) {
     this.timeline.elt.max = duration;
   }
@@ -95,5 +114,21 @@ export class UIManager {
       .padStart(2, "0");
     const m = Math.floor(seconds / 60);
     return m + ":" + s;
+  }
+
+  // Add and remove presets dynamically
+  addPreset(preset) {
+    this.presets.push(preset);
+  }
+
+  removePreset(name) {
+    this.presets = this.presets.filter((p) => p.name !== name);
+  }
+
+  updatePreset(name, updates) {
+    const preset = this.presets.find((p) => p.name === name);
+    if (preset) {
+      Object.assign(preset, updates);
+    }
   }
 }
