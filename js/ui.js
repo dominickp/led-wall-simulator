@@ -5,10 +5,9 @@
 // Define all presets with their configuration (cols, rows, pitch, bloom)
 export const PRESETS = [
   { name: "64x32", cols: 64, rows: 32, pitch: 0.61, bloom: 0.4 },
+  { name: "64x64", cols: 64, rows: 64, pitch: 0.61, bloom: 0.4 },
+  { name: "128x64", cols: 128, rows: 64, pitch: 0.65, bloom: 0.5 },
   { name: "128x128", cols: 128, rows: 128, pitch: 0.65, bloom: 0.5 },
-  { name: "P6 256x256", cols: 256, rows: 256, pitch: 0.18, bloom: 0.5 },
-  { name: "Tall 128x256", cols: 128, rows: 256, pitch: 0.18, bloom: 0.5 },
-  { name: "Wide 256x128", cols: 256, rows: 128, pitch: 0.18, bloom: 0.5 },
 ];
 
 export class UIManager {
