@@ -79,7 +79,11 @@ function draw() {
   engine.render(dims.cols, dims.rows, pitch, bloom);
 
   // Update timeline display
-  if (engine.isVideoLoaded && engine.getDuration() && !isNaN(engine.getDuration())) {
+  if (
+    engine.isVideoLoaded &&
+    engine.getDuration() &&
+    !isNaN(engine.getDuration())
+  ) {
     ui.setTimelineMax(engine.getDuration());
     ui.setTimelineValue(engine.getCurrentTime());
     ui.updateTimeDisplay(engine.getCurrentTime(), engine.getDuration());

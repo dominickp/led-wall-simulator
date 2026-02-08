@@ -5,7 +5,7 @@
 export class CanvasManager {
   static resizeCanvas(cols, rows) {
     const aspect = cols / rows;
-    
+
     // Scale canvas progressively with LED count
     // 64x64 = 600px, 128x128 = 728px, 256x256 = 984px
     const maxDim = Math.max(cols, rows);

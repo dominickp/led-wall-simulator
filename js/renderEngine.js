@@ -17,7 +17,7 @@ export class RenderEngine {
 
   loadVideo(file, onVideoReady) {
     if (!file) return;
-    
+
     const url = URL.createObjectURL(file);
     if (this.video) this.video.remove();
 

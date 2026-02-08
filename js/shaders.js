@@ -49,19 +49,22 @@ export const fragmentShader = `
         vec2 mask2d = smoothstep(edge + softness, edge - softness, d);
         float ledMask = mask2d.x * mask2d.y;
 
-        // 4. Add glow based on LED brightness
+        // 4. Add glow based on LED brightness - only in grid gaps, not over LED
         float brightness = (col.r + col.g + col.b) / 3.0;
         float distFromCenter = max(d.x, d.y);
         
         // Use squared bloom for more dramatic effect at upper end of slider
         float bloomIntensity = bloom * bloom;
         
-        // Glow extends from the LED edge outward, fading with distance
-        float glowRange = (0.5 - edge) * bloomIntensity * 2.0;
-        float glowMask = smoothstep(edge + glowRange, edge, distFromCenter) * brightness * bloomIntensity * 2.0;
+        // Glow extends from the LED edge outward into the grid gaps only
+        float glowRange = (0.5 - edge) * bloomIntensity * 1.5;
+        float glowFalloff = smoothstep(edge + glowRange, edge + 0.01, distFromCenter);
+        
+        // Glow only appears where LED mask is low (in the gaps)
+        float glowMask = glowFalloff * (1.0 - ledMask) * brightness * bloomIntensity;
 
-        // Add glow on top of LED for brightness effect
-        float finalMask = ledMask + glowMask;
+        // Combine: LED is solid at full brightness, glow only appears in gaps
+        float finalMask = max(ledMask, glowMask);
 
         gl_FragColor = col * finalMask;
     }

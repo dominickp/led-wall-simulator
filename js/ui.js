@@ -83,7 +83,9 @@ export class UIManager {
   }
 
   updateTimeDisplay(currentTime, duration) {
-    this.timeDisplay.html(`${this.formatTime(currentTime)} / ${this.formatTime(duration)}`);
+    this.timeDisplay.html(
+      `${this.formatTime(currentTime)} / ${this.formatTime(duration)}`,
+    );
   }
 
   formatTime(seconds) {
