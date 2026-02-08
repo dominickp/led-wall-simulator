@@ -8,6 +8,7 @@ let ledRowsSelect;
 let timeline;
 let timeDisplay;
 let fullscreenBtn;
+let bloomSlider;
 
 // The Shader Code (Vertex & Fragment)
 const vs = `
@@ -31,26 +32,48 @@ const fs = `
     uniform vec2 resolution;
     uniform vec2 ledCount; // cols, rows
     uniform float pitch;    // size of the "dot"
+    uniform float bloom;    // bloom intensity (0-1)
 
     void main() {
         // 1. Create the grid coordinates (support non-square grids)
         vec2 grid = fract(vTexCoord * ledCount);
         vec2 cell = floor(vTexCoord * ledCount) / ledCount;
 
-        // 2. Sample the video at the center of each "LED" (use vec2 offset)
-        vec2 offset = vec2(0.5) / ledCount;
-        vec4 col = texture2D(tex0, cell + offset);
-
-        // 3. Create the square LED shape with rounded corners
-        vec2 d = abs(grid - 0.5);
-        float cornerRadius = pitch * 0.5;
-        float softness = 0.03;
+        // 2. Sample the video with anti-aliasing (4 sub-samples to reduce Moiré)
+        vec2 cellSize = vec2(1.0) / ledCount;
+        vec4 col = vec4(0.0);
         
-        // Distance to the nearest edge of the square, accounting for rounded corners
-        float dist = length(max(d - vec2(pitch * 0.5 - cornerRadius), 0.0)) - cornerRadius;
-        float mask = 1.0 - smoothstep(-softness, softness, dist);
+        // Sample 4 points within the LED cell and average to smooth aliasing
+        for (int i = 0; i < 2; i++) {
+            for (int j = 0; j < 2; j++) {
+                vec2 offset = (vec2(float(i), float(j)) + 0.25) / (2.0 * ledCount);
+                col += texture2D(tex0, cell + offset);
+            }
+        }
+        col /= 4.0;
 
-        gl_FragColor = col * mask;
+        // 3. Create the square LED shape
+        vec2 d = abs(grid - 0.5);
+        float edge = pitch * 0.5;
+        float softness = 0.03;
+        vec2 mask2d = smoothstep(edge + softness, edge - softness, d);
+        float ledMask = mask2d.x * mask2d.y;
+
+        // 4. Add glow based on LED brightness
+        float brightness = (col.r + col.g + col.b) / 3.0;
+        float distFromCenter = max(d.x, d.y);
+        
+        // Use squared bloom for more dramatic effect at upper end of slider
+        float bloomIntensity = bloom * bloom;
+        
+        // Glow extends from the LED edge outward, fading with distance
+        float glowRange = (0.5 - edge) * bloomIntensity * 2.0;
+        float glowMask = smoothstep(edge + glowRange, edge, distFromCenter) * brightness * bloomIntensity * 2.0;
+
+        // Add glow on top of LED for brightness effect
+        float finalMask = ledMask + glowMask;
+
+        gl_FragColor = col * finalMask;
     }
 `;
 
@@ -67,6 +90,7 @@ function setup() {
   timeline = select("#timeline");
   timeDisplay = select("#timeDisplay");
   fullscreenBtn = select("#fullscreenBtn");
+  bloomSlider = select("#bloomSlider");
 
   // File Handling
   select("#videoInput").elt.onchange = handleFile;
@@ -113,7 +137,11 @@ function updateCanvasSize() {
   const cols = parseFloat(ledColsSelect.elt.value || 256);
   const rows = parseFloat(ledRowsSelect.elt.value || 256);
   const aspect = cols / rows;
-  const baseSize = 600;
+
+  // Scale canvas progressively with LED count
+  // 64x64 = 600px, 128x128 = 800px, 256x256 = 1000px
+  const maxDim = Math.max(cols, rows);
+  const baseSize = 600 + (maxDim - 64) * 2;
 
   let newW = baseSize;
   let newH = baseSize;
@@ -179,6 +207,7 @@ function draw() {
     const rows = parseFloat(ledRowsSelect.elt.value || 256);
     ledShader.setUniform("ledCount", [cols, rows]);
     ledShader.setUniform("pitch", parseFloat(pitchSlider.elt.value));
+    ledShader.setUniform("bloom", parseFloat(bloomSlider.elt.value || 0.5));
 
     rect(0, 0, width, height);
 
