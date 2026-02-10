@@ -2,24 +2,37 @@
  * LED Wall Simulator - Main Application
  */
 
-import { vertexShader, fragmentShader } from "./shaders.js";
+import { loadShaders } from "./shaders.js";
 import { UIManager, PRESETS } from "./ui.js";
 import { RenderEngine } from "./renderEngine.js";
 import { CanvasManager } from "./canvas.js";
 
 let ui;
 let engine;
+let shaders = null;
+let setupComplete = false;
 
 // Make setup and draw global for p5.js to find them
 window.setup = setup;
 window.draw = draw;
 
-function setup() {
+async function setup() {
   let canvas = createCanvas(600, 600, WEBGL);
   canvas.parent("canvas-container");
 
+  // Load shaders if not already loaded
+  if (!shaders) {
+    try {
+      shaders = await loadShaders();
+      console.log("Shaders loaded successfully");
+    } catch (error) {
+      console.error("Failed to load shaders:", error);
+      return;
+    }
+  }
+
   // Initialize engine and UI
-  engine = new RenderEngine(vertexShader, fragmentShader);
+  engine = new RenderEngine(shaders.vertexShader, shaders.fragmentShader);
   engine.initialize();
 
   ui = new UIManager();
@@ -52,6 +65,8 @@ function setup() {
   // Initial canvas size
   const dims = ui.getGridDimensions();
   CanvasManager.resizeCanvas(dims.cols, dims.rows);
+
+  setupComplete = true;
 }
 
 function handleFileSelect(event) {
@@ -131,6 +146,9 @@ function handleFullscreen() {
 }
 
 function draw() {
+  // Wait for setup to complete before drawing
+  if (!setupComplete) return;
+
   const dims = ui.getGridDimensions();
   const pitch = ui.getPitch();
   const bloom = ui.getBloom();
