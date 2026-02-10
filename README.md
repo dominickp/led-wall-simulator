@@ -12,6 +12,7 @@ This is a front-end application that transforms standard video files into a simu
  - Resolution Simulation: The tool must downsample or map video input to specific LED grid sizes (e.g., 64x64, 128x128, or 256x256).
  - Physical Pitch Control: A slider to adjust the "gap" between simulated LEDs to mimic different density panels (e.g., P3 vs. P6).
  - Transport Controls: Basic Play/Pause functionality and audio output from the source video.
+ - Export: Download the LED-rendered video (with audio when supported) for offline use.
  - Visual Fidelity: Real-time rendering of circular diodes and light bloom/glow to simulate high-brightness emitters.
 
 ### Technical Architecture

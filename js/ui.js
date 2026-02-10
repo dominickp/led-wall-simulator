@@ -25,6 +25,7 @@ export class UIManager {
     this.videoPresetSelect = select("#videoPresetSelect");
     this.presetsContainer = select("#presetsContainer");
     this.controlsToggleBtn = select("#controlsToggleBtn");
+    this.exportBtn = select("#exportBtn");
     this.presets = PRESETS;
   }
 
@@ -33,6 +34,12 @@ export class UIManager {
     select("#playBtn").mousePressed(onTogglePlay);
     if (this.videoPresetSelect) {
       this.videoPresetSelect.elt.onchange = onVideoPresetSelect;
+    }
+  }
+
+  setupExportListener(onExport) {
+    if (this.exportBtn) {
+      this.exportBtn.mousePressed(onExport);
     }
   }
 
@@ -114,6 +121,14 @@ export class UIManager {
         localStorage.setItem(storageKey, String(nextState));
       });
     }
+  }
+
+  setExportState(isRecording) {
+    if (!this.exportBtn) return;
+    this.exportBtn.elt.disabled = isRecording;
+    this.exportBtn.elt.textContent = isRecording
+      ? "Recording..."
+      : "Download LED Video";
   }
 
   setupSliderValueDisplays() {
