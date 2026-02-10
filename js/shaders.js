@@ -11,22 +11,22 @@ let fragmentShader = null;
  * @returns {Promise<{vertexShader: string, fragmentShader: string}>}
  */
 export async function loadShaders() {
-    if (vertexShader && fragmentShader) {
-        return { vertexShader, fragmentShader };
-    }
+  if (vertexShader && fragmentShader) {
+    return { vertexShader, fragmentShader };
+  }
 
-    try {
-        const [vShader, fShader] = await Promise.all([
-            fetch('./shaders/vertexShader.glsl').then(r => r.text()),
-            fetch('./shaders/fragmentShader.glsl').then(r => r.text())
-        ]);
-        
-        vertexShader = vShader;
-        fragmentShader = fShader;
-        
-        return { vertexShader, fragmentShader };
-    } catch (error) {
-        console.error('Failed to load shaders:', error);
-        throw error;
-    }
+  try {
+    const [vShader, fShader] = await Promise.all([
+      fetch("./shaders/vertexShader.glsl").then((r) => r.text()),
+      fetch("./shaders/fragmentShader.glsl").then((r) => r.text()),
+    ]);
+
+    vertexShader = vShader;
+    fragmentShader = fShader;
+
+    return { vertexShader, fragmentShader };
+  } catch (error) {
+    console.error("Failed to load shaders:", error);
+    throw error;
+  }
 }

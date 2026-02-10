@@ -1,7 +1,7 @@
 # LED Wall Simulator
 This is a front-end application that transforms standard video files into a simulated LED matrix display. It allows users to visualize how low-resolution content (e.g., 256x256) looks when rendered on physical diodes, accounting for pixel pitch (the gap between LEDs) and light emission characteristics.
 
-https://github.com/user-attachments/assets/f91caadb-07ee-4732-916c-77a1e181669c
+<video src="https://github.com/user-attachments/assets/f91caadb-07ee-4732-916c-77a1e181669c" autoplay muted loop controls></video>
 
 ### Functional Requirements
  - Local Video Playback: Users must be able to load local .mp4, .mov, or .webm files via the browser’s File API without uploading data to a server.
