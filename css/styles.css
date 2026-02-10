@@ -214,25 +214,38 @@ footer a {
 footer a:hover {
   color: #00ccff;
 }
-.github-header-link {
-  width: 100%;
-  max-width: 1200px;
-  margin: 12px auto 20px auto;
-  text-align: center;
-  padding: 0 20px;
-  box-sizing: border-box;
+
+/* GitHub corner ribbon */
+.github-corner {
+  position: fixed;
+  top: 0;
+  right: 0;
+  z-index: 1000;
 }
-.github-header-link a {
-  color: #00ff00;
-  text-decoration: none;
-  font-size: 13px;
-  border: 1px solid rgba(0, 255, 0, 0.12);
-  padding: 6px 10px;
-  border-radius: 6px;
-  display: inline-block;
+.github-corner:hover .octo-arm {
+  animation: octocat-wave 560ms ease-in-out;
 }
-.github-header-link a:hover {
-  color: #00ccff;
+@keyframes octocat-wave {
+  0%,
+  100% {
+    transform: rotate(0);
+  }
+  20%,
+  60% {
+    transform: rotate(-25deg);
+  }
+  40%,
+  80% {
+    transform: rotate(10deg);
+  }
+}
+@media (max-width: 500px) {
+  .github-corner:hover .octo-arm {
+    animation: none;
+  }
+  .github-corner .octo-arm {
+    animation: octocat-wave 560ms ease-in-out;
+  }
 }
 
 /* App layout: canvas + controls sidebar */
