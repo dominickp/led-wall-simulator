@@ -1,4 +1,4 @@
-# LED Wall Simulator
+# LED Sign Simulator
 
 **[🔗 Live Demo](http://led.dominick.cc/)**
 

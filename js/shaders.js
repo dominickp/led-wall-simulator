@@ -1,5 +1,5 @@
 /**
- * Shader definitions for LED wall rendering
+ * Shader definitions for LED sign rendering
  * Shaders are loaded from external .glsl files for proper syntax highlighting
  */
 

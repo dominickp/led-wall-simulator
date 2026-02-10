@@ -1,5 +1,5 @@
 /**
- * Local development server for LED Wall Simulator
+ * Local development server for LED Sign Simulator
  * Run with: deno run --allow-net --allow-read server.ts
  */
 
@@ -60,7 +60,7 @@ async function handler(req: Request): Promise<Response> {
 }
 
 console.log(
-  `🚀 LED Wall Simulator server running on http://${HOSTNAME}:${PORT}`,
+  `🚀 LED Sign Simulator server running on http://${HOSTNAME}:${PORT}`,
 );
 console.log(`📂 Serving from: ${Deno.cwd()}`);
 console.log(`\nPress Ctrl+C to stop`);

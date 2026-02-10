@@ -1,5 +1,5 @@
 /**
- * LED Wall Simulator - Main Application
+ * LED Sign Simulator - Main Application
  */
 
 import { loadShaders } from "./shaders.js";
@@ -154,7 +154,7 @@ function draw() {
   const pitch = ui.getPitch();
   const bloom = ui.getBloom();
 
-  // Render the LED wall
+  // Render the LED sign
   engine.render(dims.cols, dims.rows, pitch, bloom);
 
   // Update timeline display
