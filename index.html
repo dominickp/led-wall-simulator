@@ -29,6 +29,7 @@
         <div class="canvas-area">
             <div class="canvas-wrapper">
                 <div id="canvas-container"></div>
+                <div id="exportDebug" class="export-debug" aria-live="polite"></div>
             </div>
         </div>
 
@@ -36,7 +37,10 @@
             <div class="controls-container">
                 <div class="controls-header">
                     <div class="controls-title">Controls</div>
-                    <button id="controlsToggleBtn" type="button" aria-expanded="true">Hide controls</button>
+                    <div class="controls-header-actions">
+                        <button id="resetDefaultsBtn" class="reset-btn" type="button">Reset defaults</button>
+                        <button id="controlsToggleBtn" type="button" aria-expanded="true">Hide controls</button>
+                    </div>
                 </div>
         <!-- Video Loading Section -->
         <div class="control-section">
@@ -68,6 +72,17 @@
             <div class="control-row">
                 <button id="playBtn">Play/Pause</button>
                 <button id="exportBtn" type="button">Download LED Video</button>
+                <div class="control-group">
+                    <label>Bitrate:</label>
+                    <select id="exportBitrateSelect">
+                        <option value="auto" selected>Auto</option>
+                        <option value="12">12 Mbps</option>
+                        <option value="20">20 Mbps</option>
+                        <option value="30">30 Mbps</option>
+                        <option value="40">40 Mbps</option>
+                        <option value="60">60 Mbps</option>
+                    </select>
+                </div>
                 <div class="control-group full">
                     <label>Timeline:</label>
                     <input type="range" id="timeline" min="0" max="1" step="0.01" value="0">

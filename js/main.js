@@ -13,6 +13,14 @@ let shaders = null;
 let setupComplete = false;
 let recordingInProgress = false;
 let exportTimer = null;
+const SETTINGS_KEY = "ledSimulatorSettings";
+const DEFAULT_SETTINGS = {
+  colsIdx: 3,
+  rowsIdx: 3,
+  pitch: PRESETS[0].pitch,
+  bloom: PRESETS[0].bloom,
+  bitrate: "auto",
+};
 
 // Make setup and draw global for p5.js to find them
 window.setup = setup;
@@ -51,6 +59,7 @@ async function setup() {
   ui.setupTimelineListener(handleTimelineChange);
   ui.setupFullscreenListener(handleFullscreen);
   ui.setupControlsToggle();
+  ui.setupResetListener(handleResetDefaults);
 
   // Initialize canvas manager for fullscreen handling
   CanvasManager.initialize();
@@ -59,8 +68,16 @@ async function setup() {
   ui.setupSliderValueDisplays();
   ui.setExportState(false);
 
-  // Apply default preset (first preset from PRESETS array)
-  handlePreset(PRESETS[0]);
+  // Apply saved settings or default preset
+  const saved = loadSettings();
+  if (saved) {
+    applySettings(saved);
+  } else {
+    handlePreset(PRESETS[0]);
+    ui.setExportBitrateMbps(DEFAULT_SETTINGS.bitrate);
+  }
+
+  setupSettingsPersistence();
 
   // Load default video (preset a.mp4) with a small delay to ensure engine is ready
   setTimeout(() => {
@@ -97,6 +114,11 @@ async function handleExport() {
     return;
   }
 
+  const sourceDims = engine.getVideoDimensions();
+  if (sourceDims) {
+    CanvasManager.setFixedCanvasSize(sourceDims.width, sourceDims.height);
+  }
+
   engine.setPlaybackTime(0);
   engine.play();
 
@@ -106,19 +128,43 @@ async function handleExport() {
     return;
   }
 
+  const estimatedFps = await engine.estimateSourceFps({
+    sampleFrames: 24,
+    timeoutMs: 1500,
+  });
+  const fps =
+    estimatedFps && estimatedFps >= 12 && estimatedFps <= 120
+      ? Math.round(estimatedFps * 100) / 100
+      : 30;
+
   const mimeType = getBestRecordingMimeType();
+  const captureDims = sourceDims || {
+    width: width || 0,
+    height: height || 0,
+  };
+  const bitrate = getExportVideoBitrate(
+    ui.getExportBitrateMbps(),
+    captureDims.width,
+    captureDims.height,
+  );
+  const bitrateLabel = bitrate ? `${Math.round(bitrate / 1_000_000)} Mbps` : "";
+  setExportDebug(
+    `Export: ${captureDims.width}x${captureDims.height} @ ${fps} FPS ${bitrateLabel}`,
+  );
   const started = engine.startRecording({
     includeAudio: true,
     mimeType,
-    fps: 30,
-    videoBitsPerSecond: 6_000_000,
-    audioBitsPerSecond: 128_000,
+    fps,
+    videoBitsPerSecond: bitrate,
+    audioBitsPerSecond: 192_000,
     timesliceMs: 1000,
   });
 
   if (!started) {
     const reason = engine.getRecordingError();
     const detail = reason ? ` (${reason})` : "";
+    CanvasManager.clearFixedCanvasSize();
+    setExportDebug("");
     alert(`Recording is not supported in this browser${detail}.`);
     return;
   }
@@ -141,6 +187,8 @@ async function handleExport() {
         alert("Recording failed. Please try again with another format.");
         recordingInProgress = false;
         ui.setExportState(false);
+        CanvasManager.clearFixedCanvasSize();
+        setExportDebug("");
         engine.pause();
         return;
       }
@@ -151,6 +199,8 @@ async function handleExport() {
         );
         recordingInProgress = false;
         ui.setExportState(false);
+        CanvasManager.clearFixedCanvasSize();
+        setExportDebug("");
         engine.pause();
         return;
       }
@@ -165,6 +215,8 @@ async function handleExport() {
     }
     recordingInProgress = false;
     ui.setExportState(false);
+    CanvasManager.clearFixedCanvasSize();
+    setExportDebug("");
     engine.pause();
   }, stopAfterMs);
 }
@@ -222,6 +274,11 @@ function handleGridChange() {
   CanvasManager.resizeCanvas(dims.cols, dims.rows);
 }
 
+function handleResetDefaults() {
+  applySettings(DEFAULT_SETTINGS);
+  saveSettings(DEFAULT_SETTINGS);
+}
+
 function handleTimelineChange() {
   const time = ui.getTimelineValue();
   engine.setPlaybackTime(time);
@@ -263,6 +320,98 @@ function getBestRecordingMimeType() {
     if (MediaRecorder.isTypeSupported(type)) return type;
   }
   return "";
+}
+
+function getExportVideoBitrate(selection, width, height) {
+  if (selection && selection !== "auto") {
+    const numeric = Number.parseFloat(selection);
+    if (Number.isFinite(numeric) && numeric > 0) {
+      return Math.round(numeric * 1_000_000);
+    }
+  }
+
+  if (!width || !height) return 8_000_000;
+  const base = 16_000_000;
+  const scale = (width * height) / (1920 * 1080);
+  const unclamped = Math.round(base * scale);
+  return Math.min(Math.max(unclamped, 8_000_000), 40_000_000);
+}
+
+function setupSettingsPersistence() {
+  const save = () => saveSettings(collectSettings());
+
+  ui.ledColsSelect?.elt?.addEventListener("input", save);
+  ui.ledRowsSelect?.elt?.addEventListener("input", save);
+  ui.pitchSlider?.elt?.addEventListener("input", save);
+  ui.bloomSlider?.elt?.addEventListener("input", save);
+  ui.exportBitrateSelect?.elt?.addEventListener("change", save);
+}
+
+function collectSettings() {
+  const grid = ui.getGridIndices();
+  return {
+    colsIdx: Number.isFinite(grid.colsIdx) ? grid.colsIdx : DEFAULT_SETTINGS.colsIdx,
+    rowsIdx: Number.isFinite(grid.rowsIdx) ? grid.rowsIdx : DEFAULT_SETTINGS.rowsIdx,
+    pitch: ui.getPitch(),
+    bloom: ui.getBloom(),
+    bitrate: ui.getExportBitrateMbps(),
+  };
+}
+
+function applySettings(settings) {
+  if (!settings) return;
+  const colsIdx =
+    Number.isFinite(settings.colsIdx) && settings.colsIdx >= 0
+      ? settings.colsIdx
+      : DEFAULT_SETTINGS.colsIdx;
+  const rowsIdx =
+    Number.isFinite(settings.rowsIdx) && settings.rowsIdx >= 0
+      ? settings.rowsIdx
+      : DEFAULT_SETTINGS.rowsIdx;
+  ui.setGridIndices(colsIdx, rowsIdx);
+
+  const pitch = Number.isFinite(settings.pitch)
+    ? settings.pitch
+    : DEFAULT_SETTINGS.pitch;
+  const bloom = Number.isFinite(settings.bloom)
+    ? settings.bloom
+    : DEFAULT_SETTINGS.bloom;
+  ui.setPitch(pitch);
+  ui.setBloom(bloom);
+
+  ui.setExportBitrateMbps(settings.bitrate || DEFAULT_SETTINGS.bitrate);
+}
+
+function loadSettings() {
+  try {
+    const raw = localStorage.getItem(SETTINGS_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch (error) {
+    console.warn("Failed to read saved settings:", error);
+    return null;
+  }
+}
+
+function saveSettings(settings) {
+  try {
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+  } catch (error) {
+    console.warn("Failed to save settings:", error);
+  }
+}
+
+function setExportDebug(message) {
+  const el = document.querySelector("#exportDebug");
+  if (!el) return;
+  const text = (message || "").trim();
+  if (!text) {
+    el.textContent = "";
+    el.style.display = "none";
+    return;
+  }
+  el.textContent = text;
+  el.style.display = "block";
 }
 
 async function fixWebmDuration(blob, durationMs) {

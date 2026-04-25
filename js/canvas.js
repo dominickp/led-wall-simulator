@@ -7,6 +7,7 @@ export class CanvasManager {
   static _resizeQueued = false;
   static _resizeObserver = null;
   static _scheduleResize = null;
+  static _fixedSize = null;
 
   static initialize() {
     // Listen for fullscreen changes and resize appropriately
@@ -49,9 +50,24 @@ export class CanvasManager {
     this.applyResize();
   }
 
+  static setFixedCanvasSize(width, height) {
+    if (!width || !height) return;
+    this._fixedSize = {
+      width: Math.round(width),
+      height: Math.round(height),
+    };
+    this.applyResize();
+  }
+
+  static clearFixedCanvasSize() {
+    this._fixedSize = null;
+    this.applyResize();
+  }
+
   static applyResize() {
     const dims = this.currentDims || { cols: 64, rows: 64 };
-    const aspect = dims.cols / dims.rows;
+    const fixed = this._fixedSize;
+    const aspect = fixed ? fixed.width / fixed.height : dims.cols / dims.rows;
 
     // Check if in fullscreen
     const isFullscreen = document.fullscreenElement !== null;
@@ -91,7 +107,21 @@ export class CanvasManager {
       }
     }
 
-    window.resizeCanvas(newW, newH);
+    if (fixed) {
+      window.resizeCanvas(fixed.width, fixed.height);
+      const canvas = document.querySelector("canvas");
+      if (canvas) {
+        canvas.style.width = `${newW}px`;
+        canvas.style.height = `${newH}px`;
+      }
+    } else {
+      window.resizeCanvas(newW, newH);
+      const canvas = document.querySelector("canvas");
+      if (canvas) {
+        canvas.style.width = "";
+        canvas.style.height = "";
+      }
+    }
 
     const wrapper = document.querySelector(".canvas-wrapper");
     const container = document.querySelector("#canvas-container");

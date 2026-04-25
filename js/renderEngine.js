@@ -120,6 +120,136 @@ export class RenderEngine {
     return this.video ? this.video.elt.duration : 0;
   }
 
+  getVideoDimensions() {
+    const videoEl = this.video?.elt;
+    if (!videoEl) return null;
+    const width = videoEl.videoWidth || 0;
+    const height = videoEl.videoHeight || 0;
+    if (!width || !height) return null;
+    return { width, height };
+  }
+
+  async estimateSourceFps({ sampleSeconds = 1.2, timeoutMs = 2000 } = {}) {
+    const videoEl = this.video?.elt;
+    if (!videoEl) return null;
+    if (videoEl.readyState < 2 || videoEl.paused) return null;
+
+    const commonFps = [
+      23.976,
+      24,
+      25,
+      29.97,
+      30,
+      50,
+      59.94,
+      60,
+    ];
+    const snapToCommon = (fps) => {
+      if (!Number.isFinite(fps)) return null;
+      let best = null;
+      let bestDiff = Infinity;
+      for (const candidate of commonFps) {
+        const diff = Math.abs(candidate - fps);
+        if (diff < bestDiff) {
+          bestDiff = diff;
+          best = candidate;
+        }
+      }
+      return bestDiff <= 1.5 ? best : fps;
+    };
+
+    const estimateFromPlaybackQuality = () => {
+      if (typeof videoEl.getVideoPlaybackQuality !== "function") return null;
+      const quality = videoEl.getVideoPlaybackQuality();
+      if (!quality || typeof quality.totalVideoFrames !== "number") return null;
+
+      return new Promise((resolve) => {
+        let resolved = false;
+        const finalize = (fps) => {
+          if (resolved) return;
+          resolved = true;
+          resolve(fps);
+        };
+
+        const startFrames = quality.totalVideoFrames;
+        const startMedia = videoEl.currentTime || 0;
+
+        const timer = setTimeout(() => {
+          const endQuality = videoEl.getVideoPlaybackQuality();
+          const endFrames = endQuality?.totalVideoFrames ?? startFrames;
+          const endMedia = videoEl.currentTime || 0;
+          const deltaFrames = endFrames - startFrames;
+          const deltaMedia = endMedia - startMedia;
+          if (deltaFrames > 0 && deltaMedia > 0) {
+            finalize(deltaFrames / deltaMedia);
+          } else {
+            finalize(null);
+          }
+        }, Math.max(400, Math.round(sampleSeconds * 1000)));
+
+        setTimeout(() => {
+          clearTimeout(timer);
+          finalize(null);
+        }, timeoutMs);
+      });
+    };
+
+    const estimateFromVideoFrames = () => {
+      if (typeof videoEl.requestVideoFrameCallback !== "function") return null;
+      return new Promise((resolve) => {
+        let resolved = false;
+        let lastMediaTime = null;
+        let frameCount = 0;
+        let totalDelta = 0;
+        const startTime = performance.now();
+
+        const finalize = (fps) => {
+          if (resolved) return;
+          resolved = true;
+          resolve(fps);
+        };
+
+        const onFrame = (_now, metadata) => {
+          if (resolved) return;
+          const mediaTime = metadata?.mediaTime;
+          if (typeof mediaTime === "number") {
+            if (lastMediaTime !== null) {
+              const delta = mediaTime - lastMediaTime;
+              if (delta > 0 && delta < 1) {
+                totalDelta += delta;
+                frameCount += 1;
+              }
+            }
+            lastMediaTime = mediaTime;
+          }
+
+          const elapsed = performance.now() - startTime;
+          if (elapsed >= timeoutMs || totalDelta >= sampleSeconds) {
+            if (frameCount > 0 && totalDelta > 0) {
+              finalize(frameCount / totalDelta);
+            } else {
+              finalize(null);
+            }
+            return;
+          }
+
+          videoEl.requestVideoFrameCallback(onFrame);
+        };
+
+        videoEl.requestVideoFrameCallback(onFrame);
+        setTimeout(() => finalize(null), timeoutMs + 200);
+      });
+    };
+
+    let fps = await estimateFromPlaybackQuality();
+    if (!fps) {
+      fps = await estimateFromVideoFrames();
+    }
+
+    const snapped = snapToCommon(fps);
+    return snapped ? Math.round(snapped * 100) / 100 : null;
+  }
+
   getVideoFileName() {
     return this.videoFileName || "";
   }

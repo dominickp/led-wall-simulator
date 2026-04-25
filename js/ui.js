@@ -23,8 +23,10 @@ export class UIManager {
     this.fullscreenBtn = select("#fullscreenBtn");
     this.bloomSlider = select("#bloomSlider");
     this.videoPresetSelect = select("#videoPresetSelect");
+    this.exportBitrateSelect = select("#exportBitrateSelect");
     this.presetsContainer = select("#presetsContainer");
     this.controlsToggleBtn = select("#controlsToggleBtn");
+    this.resetDefaultsBtn = select("#resetDefaultsBtn");
     this.exportBtn = select("#exportBtn");
     this.presets = PRESETS;
   }
@@ -123,6 +125,12 @@ export class UIManager {
     }
   }
 
+  setupResetListener(onReset) {
+    if (this.resetDefaultsBtn) {
+      this.resetDefaultsBtn.mousePressed(onReset);
+    }
+  }
+
   setExportState(isRecording) {
     if (!this.exportBtn) return;
     this.exportBtn.elt.disabled = isRecording;
@@ -156,6 +164,28 @@ export class UIManager {
       cols: GRID_POWERS[colsIdx] || GRID_POWERS[4],
       rows: GRID_POWERS[rowsIdx] || GRID_POWERS[4],
     };
+  }
+
+  getGridIndices() {
+    return {
+      colsIdx: parseInt(this.ledColsSelect.elt.value, 10),
+      rowsIdx: parseInt(this.ledRowsSelect.elt.value, 10),
+    };
+  }
+
+  setGridIndices(colsIdx, rowsIdx) {
+    if (Number.isFinite(colsIdx)) {
+      this.ledColsSelect.elt.value = String(colsIdx);
+      this.ledColsSelect.elt.dispatchEvent(
+        new Event("input", { bubbles: true }),
+      );
+    }
+    if (Number.isFinite(rowsIdx)) {
+      this.ledRowsSelect.elt.value = String(rowsIdx);
+      this.ledRowsSelect.elt.dispatchEvent(
+        new Event("input", { bubbles: true }),
+      );
+    }
   }
 
   setGridDimensions(cols, rows) {
@@ -196,6 +226,19 @@ export class UIManager {
 
   getTimelineValue() {
     return parseFloat(this.timeline.elt.value);
+  }
+
+  getExportBitrateMbps() {
+    if (!this.exportBitrateSelect?.elt) return "auto";
+    return this.exportBitrateSelect.elt.value || "auto";
+  }
+
+  setExportBitrateMbps(value) {
+    if (!this.exportBitrateSelect?.elt) return;
+    this.exportBitrateSelect.elt.value = value;
+    this.exportBitrateSelect.elt.dispatchEvent(
+      new Event("change", { bubbles: true }),
+    );
   }
 
   updateTimeDisplay(currentTime, duration) {

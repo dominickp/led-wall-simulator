@@ -34,6 +34,7 @@ h2 {
   height: min(70vh, 760px);
   aspect-ratio: var(--canvas-aspect, 1 / 1);
   transition: height 0.2s ease;
+  position: relative;
 }
 canvas {
   border: 2px solid #333;
@@ -52,6 +53,23 @@ canvas {
   max-width: 100%;
   height: auto;
 }
+.export-debug {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.6);
+  border: 1px solid rgba(0, 255, 0, 0.35);
+  color: #00ff8a;
+  font-size: 11px;
+  letter-spacing: 0.3px;
+  font-weight: 600;
+  text-transform: uppercase;
+  display: none;
+  pointer-events: none;
+  text-shadow: 0 0 8px rgba(0, 255, 0, 0.35);
+}
 .controls-container {
   width: 100%;
   max-width: 900px;
@@ -66,6 +84,20 @@ canvas {
   justify-content: space-between;
   gap: 12px;
   margin-bottom: 16px;
+}
+.controls-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.reset-btn {
+  border-color: #ffb000;
+  color: #ffb000;
+}
+.reset-btn:hover {
+  background: #ffb000;
+  color: #000;
+  box-shadow: 0 0 10px rgba(255, 176, 0, 0.3);
 }
 .controls-title {
   font-size: 12px;
