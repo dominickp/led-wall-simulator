@@ -172,13 +172,24 @@ async function handleExport() {
   recordingInProgress = true;
   ui.setExportState(true);
 
-  if (exportTimer) {
-    clearTimeout(exportTimer);
-    exportTimer = null;
-  }
+  let recordingFinalized = false;
+  let stallStart = null;
+  let lastPlaybackTime = -1;
+  const endLeadSeconds = Math.max(1 / fps, 0.04);
+  const endEpsilon = 0.08;
+  const targetStopMs = Math.max((duration - endLeadSeconds) * 1000, 0);
+  const stallThresholdMs = 450;
+  const recordStartTime = performance.now();
 
-  const stopAfterMs = Math.ceil(duration * 1000) + 200;
-  exportTimer = setTimeout(async () => {
+  const finalizeRecording = async () => {
+    if (recordingFinalized) return;
+    recordingFinalized = true;
+
+    if (exportTimer) {
+      clearTimeout(exportTimer);
+      exportTimer = null;
+    }
+
     const blob = await engine.stopRecording();
     if (blob) {
       const recordingError = engine.getRecordingError();
@@ -218,7 +229,41 @@ async function handleExport() {
     CanvasManager.clearFixedCanvasSize();
     setExportDebug("");
     engine.pause();
-  }, stopAfterMs);
+  };
+
+  const stopAfterMs = Math.ceil(duration * 1000) + 800;
+  exportTimer = setTimeout(finalizeRecording, stopAfterMs);
+
+  const monitorPlayback = () => {
+    if (recordingFinalized) return;
+    const el = engine.getVideoElement?.();
+    if (!el) return;
+    const current = el.currentTime || 0;
+
+    const elapsedMs = performance.now() - recordStartTime;
+    if (elapsedMs >= targetStopMs) {
+      finalizeRecording();
+      return;
+    }
+
+    if (current >= duration - endEpsilon) {
+      const stalled = lastPlaybackTime >= 0 && Math.abs(current - lastPlaybackTime) < 0.001;
+      if (stalled) {
+        if (!stallStart) stallStart = performance.now();
+        if (performance.now() - stallStart >= stallThresholdMs) {
+          finalizeRecording();
+          return;
+        }
+      } else {
+        stallStart = null;
+      }
+    }
+
+    lastPlaybackTime = current;
+    requestAnimationFrame(monitorPlayback);
+  };
+
+  requestAnimationFrame(monitorPlayback);
 }
 
 function handleVideoPresetSelect(event) {
@@ -350,8 +395,12 @@ function setupSettingsPersistence() {
 function collectSettings() {
   const grid = ui.getGridIndices();
   return {
-    colsIdx: Number.isFinite(grid.colsIdx) ? grid.colsIdx : DEFAULT_SETTINGS.colsIdx,
-    rowsIdx: Number.isFinite(grid.rowsIdx) ? grid.rowsIdx : DEFAULT_SETTINGS.rowsIdx,
+    colsIdx: Number.isFinite(grid.colsIdx)
+      ? grid.colsIdx
+      : DEFAULT_SETTINGS.colsIdx,
+    rowsIdx: Number.isFinite(grid.rowsIdx)
+      ? grid.rowsIdx
+      : DEFAULT_SETTINGS.rowsIdx,
     pitch: ui.getPitch(),
     bloom: ui.getBloom(),
     bitrate: ui.getExportBitrateMbps(),

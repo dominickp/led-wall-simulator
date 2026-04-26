@@ -129,21 +129,16 @@ export class RenderEngine {
     return { width, height };
   }
 
+  getVideoElement() {
+    return this.video?.elt || null;
+  }
+
   async estimateSourceFps({ sampleSeconds = 1.2, timeoutMs = 2000 } = {}) {
     const videoEl = this.video?.elt;
     if (!videoEl) return null;
     if (videoEl.readyState < 2 || videoEl.paused) return null;
 
-    const commonFps = [
-      23.976,
-      24,
-      25,
-      29.97,
-      30,
-      50,
-      59.94,
-      60,
-    ];
+    const commonFps = [23.976, 24, 25, 29.97, 30, 50, 59.94, 60];
     const snapToCommon = (fps) => {
       if (!Number.isFinite(fps)) return null;
       let best = null;
@@ -174,18 +169,21 @@ export class RenderEngine {
         const startFrames = quality.totalVideoFrames;
         const startMedia = videoEl.currentTime || 0;
 
-        const timer = setTimeout(() => {
-          const endQuality = videoEl.getVideoPlaybackQuality();
-          const endFrames = endQuality?.totalVideoFrames ?? startFrames;
-          const endMedia = videoEl.currentTime || 0;
-          const deltaFrames = endFrames - startFrames;
-          const deltaMedia = endMedia - startMedia;
-          if (deltaFrames > 0 && deltaMedia > 0) {
-            finalize(deltaFrames / deltaMedia);
-          } else {
-            finalize(null);
-          }
-        }, Math.max(400, Math.round(sampleSeconds * 1000)));
+        const timer = setTimeout(
+          () => {
+            const endQuality = videoEl.getVideoPlaybackQuality();
+            const endFrames = endQuality?.totalVideoFrames ?? startFrames;
+            const endMedia = videoEl.currentTime || 0;
+            const deltaFrames = endFrames - startFrames;
+            const deltaMedia = endMedia - startMedia;
+            if (deltaFrames > 0 && deltaMedia > 0) {
+              finalize(deltaFrames / deltaMedia);
+            } else {
+              finalize(null);
+            }
+          },
+          Math.max(400, Math.round(sampleSeconds * 1000)),
+        );
 
         setTimeout(() => {
           clearTimeout(timer);
@@ -456,6 +454,33 @@ export class RenderEngine {
 
   async stopRecording() {
     if (!this.recorder || !this.recordingActive) return null;
+    if (this.recordedChunks.length === 0 && this.recorder.state === "recording") {
+      const dataReady = new Promise((resolve) => {
+        let resolved = false;
+        const onData = (event) => {
+          if (resolved) return;
+          if (event?.data && event.data.size > 0) {
+            resolved = true;
+            this.recorder?.removeEventListener("dataavailable", onData);
+            resolve(true);
+          }
+        };
+        this.recorder?.addEventListener("dataavailable", onData);
+        setTimeout(() => {
+          if (resolved) return;
+          resolved = true;
+          this.recorder?.removeEventListener("dataavailable", onData);
+          resolve(false);
+        }, 500);
+      });
+
+      try {
+        this.recorder.requestData();
+        await dataReady;
+      } catch (error) {
+        this.lastRecordingError = error;
+      }
+    }
     this.recorder.stop();
     this.video.loop();
     const blob = await this._recordingStopPromise;
